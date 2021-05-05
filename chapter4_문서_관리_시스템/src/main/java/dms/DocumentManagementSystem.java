@@ -2,6 +2,7 @@ package dms;
 
 import dms.document.*;
 import dms.errors.UnknownFileTypeException;
+import dms.query.Query;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -10,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class DocumentManagementSystem {
     private final Map<String, Importer> importers = new HashMap<>();
@@ -19,6 +21,7 @@ public class DocumentManagementSystem {
         importers.put("letter", new LetterImporter());
         importers.put("report", new ReportImporter());
         importers.put("jpg", new ImageImporter());
+        importers.put("invoice", new InvoiceImporter());
     }
 
     // 파일 경로를 받아 해당 파일을 임포트한다.
@@ -49,5 +52,12 @@ public class DocumentManagementSystem {
     // 문서관리 시스템에 저장된 모든 문서를 반환한다.
     public List<Document> contents() {
         return documents;
+    }
+
+    // 문서내 검색을 수행한다.
+    public List<Document> search(final String query) {
+        return documents.stream()
+            .filter(Query.parse(query))
+            .collect(Collectors.toList());
     }
 }

@@ -12,7 +12,7 @@ public class Query implements Predicate<Document> {
 
     // 커스텀한 쿼리 형식 사용
     // 쿼리 형식 -> patient:Joe,body:Diet Coke
-    static Query parse(final String query) {
+    public static Query parse(final String query) {
         return new Query(Arrays.stream(query.split(","))
             .map(str -> str.split(":"))
             .collect(Collectors.toMap(x -> x[0], x -> x[1]))
