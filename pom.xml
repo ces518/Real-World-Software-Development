@@ -12,6 +12,7 @@
     <modules>
         <module>chapter2_입출금_내역_분석기</module>
         <module>chapter3_입출금_내역_분석기_확장판</module>
+        <module>chapter4_문서_관리_시스템</module>
     </modules>
 
     <properties>
