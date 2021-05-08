@@ -290,3 +290,264 @@ public class DocumentManagementSystem {
 - Document 가 불변 클래스라면, 자식 클래스 또한 불변이어야 한다.
 - 즉 어떤 속성도 추가 / 삭제 / 변경 할 수 없어야 한다.
 
+## 대안
+
+### 임포터를 클래스로 만들기
+- 임포터의 클래스 계층을 인터페이스 대신 최상위에 Importer 클래스를 만드는 방법
+- 인터페이스와 클래스는 서로 다른 기능을 제공한다.
+  - 인터페이스는 여러 개를 한 번에 구현 가능
+  - 클래스는 인스턴스 필드와 메소드를 가짐
+> 다중 상속을 목적으로 인터페이스를 사용해서는 안된다. \n
+> 또한 상수 정의를 목적으로 인터페이스를 사용해서도 안된다. \n
+> 인터페이스는 **타입 정의 목적** 으로만 사용해야 한다.
+
+- 상속 기반의 클래스 보단 인터페이스를 이용하는 것이 좋은 선택
+- 모든 상황에서 인터페이스가 좋은 것은 아니다. 강력한 **is a 관계** 를 모델링 해야 한다면 상속이 옳은 선택이다.
+
+### 영역 / 캡슐화 선택
+- 접근 제어자를 이용해 일종의 은폐 장치로 사용할 수 있다.
+  - 특정 클래스는 특정 패키지 내에서만 생성 하게끔 제한 하는 등..
+  - 이런 방식을 이용해 일종의 캡슐화 구현도 가능하다.
+- 접근 제어자는 패키지가 기본 영역이지만 실제 개발시 패키지 영역 보다 public 영역을 더 많이 사용한다.
+- 공개 영역을 Public 으로 지정하는 것이 더 좋은 선택 일 수 있다.
+
+## 기존 코드 확장 및 재사용
+- 소프트웨어는 항상 변한다.
+- 제품에 기능 추가 / 요구사항 변경 등 소프트웨어는 항상 변할 수 있다.
+- 청구서 문서를 관리하고 싶다는 요구사항이 추가되었다.
+  - 청구서 문서는 본문 및 금액을 포함하고, .invoice 라는 확장자를 가진다.
+
+`청구서 예제`
+
+```text
+Dear Joe Bloggs
+
+Here is your invoice for the dental treatment that you received.
+
+Amount: $100
+
+regards,
+
+  Dr Avaj
+  Awesome Dentist
+```
+
+`우편물 예제`
+
+```text
+Dear Joe Bloggs
+
+123 Fake Street
+Westminster
+London
+United Kingdom
+
+We are writing to you to confirm the re-scheduling of your appointment
+with Dr. Avaj from 29th December 2016 to 5th January 2017.
+
+regards,
+
+  Dr Avaj
+  Awesome Dentist
+```
+
+`리포트 예제`
+
+```text
+Patient: Joe Bloggs
+
+On 5th January 2017 I examined Joe's teeth.
+We discussed his switch from drinking Coke to Diet Coke.
+No new problems were noted with his teeth.
+```
+
+- 각 예제들을 살펴보면 Dear, Amount 와 같은 접두어 뒤에 나오는 내용을 속성으로 추출 할 수 있다.
+- 청구서 / 우편물 / 리포트 모두 접두어 추출을 활용할 수 있다.
+- 이런 코드를 재사용 하려면 특정 클래스에 구현을 해야한다.
+
+### 유틸리티 클래스
+- 가장 강단한 방법이지만 이는 좋은 방법은 아니다.
+- 결국 여러 정적 메소드들을 포함하게 된다.
+- 유틸리티 클래스는 보통 어떤 의무나 개념과 상관없이 다양한 코드의 모음을 귀결된다.
+- 시간이 흐를 수록 하나의 **갓 클래스** 가 될 가능성이 높다.
+
+### 상속 사용
+- 동작과 개념을 연결하는데 상속을 이용 하는 방법
+- 각각의 임포터가 TextImporter 클래스를 상속받는 방법
+- 모든 공통기능을 구현하고 서브클래스에서 이를 재사용 한다.
+- TextImporter 는 Importer 이고 LSP 를 따르지만 실제 관계를 제대로 반영하지 않은 상속은 쉽게 깨질 수 있다.
+- 시간이 흐르고 프로그램이 변경될 때 이를 바꾸는 것 보단 변화를 추상화 하는 것이 좋다.
+> 일반적으로 상속을 코드 재사용 목적으로 사용하는 것은 좋은 방법이 아니다.
+
+### 도메인 클래스
+- 도메인 클래스로 텍스트 파일을 모델링 하는 방법
+- 기본 개념을 모델링 한 뒤 기본 개념이 제공하는 메서드를 호출해 다양한 임포터를 만든다.
+
+`TextFile`
+
+```java
+public class TextFile {
+    private final Map<String, String> attributes;
+    private final List<String> lines;
+
+    public TextFile(final File file) throws IOException {
+        this.attributes = new HashMap<>();
+        attributes.put(Attributes.PATH, file.getPath());
+        this.lines = Files.lines(file.toPath()).collect(Collectors.toList());
+    }
+
+    public Map<String, String> getAttributes() {
+        return attributes;
+    }
+
+    public int addLines(
+        final int start,
+        final Predicate<String> isEnd,
+        final String attributeName
+    ) {
+        final StringBuilder accumulator = new StringBuilder();
+        int lineNumber;
+
+        for (lineNumber = start; lineNumber < lines.size(); lineNumber++) {
+            final String line = lines.get(lineNumber);
+            if (isEnd.test(line)) {
+                break;
+            }
+
+            accumulator.append(line);
+            accumulator.append("\n");
+        }
+        attributes.put(attributeName, accumulator.toString().trim());
+        return lineNumber;
+    }
+
+    public void addLineSuffix(final String prefix, final String attributeName) {
+        for (final String line : lines) {
+            if (line.startsWith(prefix)) {
+                attributes.put(attributeName, line.substring(prefix.length()));
+                break;
+            }
+        }
+    }
+}
+```
+- TextFile 은 Document 의 서브 타입이 아니고, 텍스트 파일에서 데이터를 추출하는 메소드를 가진다.
+> 도메인 클래스를 이용하면 유연성을 개선할 수 있다. \n
+> 도메인 클래스 활용시 상속 처럼 쉽게 깨질 수 있는 계층을 만들지 않으면서 코드 재사용이 가능하다.
+
+`각 임포터 구현`
+
+```java
+public class InvoiceImporter implements Importer {
+    private static final String NAME_PREFIX = "Dear ";
+    private static final String AMOUNT_PREFIX = "Amount: ";
+
+    @Override
+    public Document importFile(final File file) throws IOException {
+        final TextFile textFile = new TextFile(file);
+
+        textFile.addLineSuffix(NAME_PREFIX, PATIENT);
+        textFile.addLineSuffix(AMOUNT_PREFIX, AMOUNT);
+
+        final Map<String, String> attributes = textFile.getAttributes();
+        attributes.put(Attributes.TYPE, "INVOICE");
+
+        return new Document(attributes);
+    }
+}
+
+public class LetterImporter implements Importer {
+  private static final String NAME_PREFIX = "Dear ";
+
+  @Override
+  public Document importFile(final File file) throws IOException {
+    final TextFile textFile = new TextFile(file);
+
+    textFile.addLineSuffix(NAME_PREFIX, PATIENT);
+
+    final int lineNumber = textFile.addLines(2, String::isBlank, ADDRESS);
+    textFile.addLines(lineNumber + 1, line -> line.startsWith("regards,"), BODY);
+
+    final Map<String, String> attributes = textFile.getAttributes();
+    attributes.put(TYPE, "LETTER");
+
+    return new Document(attributes);
+  }
+}
+
+public class ReportImporter implements Importer {
+  private static final String NAME_PREFIX = "Patient: ";
+
+  @Override
+  public Document importFile(final File file) throws IOException {
+    final TextFile textFile = new TextFile(file);
+    textFile.addLineSuffix(NAME_PREFIX, PATIENT);
+    textFile.addLines(2, line -> false, BODY);
+
+    final Map<String, String> attributes = textFile.getAttributes();
+    attributes.put(TYPE, "REPORT");
+
+    return new Document(attributes);
+  }
+}
+```
+
+## 테스트 위생
+- 자동화된 테스트를 구현하면 소프트웨어 유지보수에 큰 도움이 된다.
+- 어떤 동작이 문제를 일으켰는지 이해할 수 있고, 자신있게 리팩터링이 가능하다.
+- 또한 잘 작성된 테스트 코드는 **문서의 역할** 도 한다.
+- 테스트 유지보수 문제를 해결하려면 **테스트 위생** 을 지켜야 한다.
+  - 코드베이스 뿐이 아닌 테스트 코드도 깔끔하고 개선 해야 한다.
+
+### 테스트 이름 짓기
+- 테스트 이름은 가독성 / 유지보수성을 고려 해야한다.
+- test1 과 같은 테스트 명은 최악의 안티패턴이고 file, document 와 같이 개념이나 명사로 테스트 명을 짓는 것이다.
+
+`좋은 테스트 이름 짓는 3가지`
+- 도메인 용어 사용
+- 자연어 사용
+- 서술적
+
+### 구현이 아닌 동작
+- 클래스 / 컴포넌트 / 시슽메 테스트 구현시에는 대상의 **공개 동작 (public behavior)** 만 테스트 해야한다.
+- 객체의 내부 상태나 설계는 고려하지 않고 오직 공개 API 메소드만 이용해 테스트를 수행해야 한다.
+- 세부 구현에 의존한 테스트는 구현이 변경되면 테스트도 깨지게 된다.
+
+### 중복 배제
+- 개발자들은 코드베이스에서는 중복 제거를 잘 지키지만, 테스트 코드에서는 크게 신경 쓰지 않는다.
+- 테스트 코드에서도 반복되는 중복 코드를 제거해야 한다.
+
+### 좋은 진단
+- 테스트는 실패하지 않는다면 소용 없다.
+- 실패에 최적화된 테스트를 구현해야 한다.
+- 이는 테스트가 실패한 이유를 쉽게 이해 가능하도록 만들어야 한다는 의미이다.
+
+### 오류 상황 테스트
+- 테스트 개발시 가장 흔한 실수는 가장 바람직한 성공 케이스만 테스트 한다는 점이다.
+- 문서관리 시스템에서 파일이 없거나, 읽지 못하는 파일을 읽으려 하는등 실패 케이스에 대한 테스트도 작성이 되어야 한다.
+
+### 상수
+- 상수는 변하지 않는 값이다.
+- 테스트에 활용되는 용도에 따라 적절한 네이밍을 하는것이 좋다.
+
+## 정리
+- 개발자와 사용자 모두가 사용할 수 있도록 유비 쿼터스 언어를 활용 해야 한다.
+- 강한 형식의 원칙을 적용하면 데이터 사용 방법을 규제할 수 있다.
+- 인터페이스 설계시 불필요한 기능은 제거 해야 한다.
+- 매직넘버 사용은 지양해야 한다.
+- 상속 관계에 적용하는 리스코프 치환 원칙을 준수해야 한다.
+- 리스코프 치환 원칙을 준수하더라도 실제 관계를 반영하지 않는 상속관계라면 깨지기 쉽고 불안정하다.
+- 코드 재사용을 위한 상속은 사용해서는 안된다.
+  - 도메인 클래스를 활용해 추상화 하는 방법도 존재한다.
+- 상속 보다는 합성을 사용해야 한다.
+  
+
+
+
+
+
+
+
+
+
+
