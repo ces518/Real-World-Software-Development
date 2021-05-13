@@ -22,6 +22,7 @@
         <module>chapter3_입출금_내역_분석기_확장판</module>
         <module>chapter4_문서_관리_시스템</module>
         <module>chapter5_비즈니스_규칙_엔진</module>
+        <module>chapter6_트우터</module>
     </modules>
 
     <properties>
@@ -33,6 +34,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk15on</artifactId>
+            <version>1.58</version>
         </dependency>
 <!--        <dependency>-->
 <!--            <groupId>org.junit.jupiter</groupId>-->
