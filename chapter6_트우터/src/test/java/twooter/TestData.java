@@ -11,4 +11,8 @@ abstract class TestData {
 
     static final String TWOOT = "Hello World!";
     static final String TWOOT_2 = "Bye World!";
+
+    static Twoot twootAt(final String id, final Position position) {
+        return new Twoot(id, OTHER_USER_ID, TWOOT, position);
+    }
 }

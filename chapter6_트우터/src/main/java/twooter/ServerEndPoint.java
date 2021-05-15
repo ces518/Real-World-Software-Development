@@ -17,6 +17,20 @@ public class ServerEndPoint {
     public FollowStatus onFollow(final String userIdToFollow) {
         Objects.requireNonNull(userIdToFollow, "userIdToFollow");
 
-        return FollowStatus.SUCCESS;
+        return twooter.onFollow(user, userIdToFollow);
+    }
+
+    public Position onSendTwoot(final String id, final String content) {
+        Objects.requireNonNull(content, "content");
+
+        return twooter.onSendTwoot(id, user, content);
+    }
+
+    public void onLogoff() {
+        user.onLogOff();
+    }
+
+    public DeleteStatus onDeleteTwoot(final String id) {
+        return twooter.onDeleteTwoot(user.getId(), id);
     }
 }
